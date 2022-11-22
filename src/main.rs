@@ -162,7 +162,7 @@ FOCAL_LENGTH = 64.0
             draw_line((x1, y1), (x2, y2), &mut grid);
         }
 
-        //
+        // Set project verticies to grid
         for vertex in projected_verticies {
             let x = vertex[0] as usize;
             let y = vertex[1] as usize;
