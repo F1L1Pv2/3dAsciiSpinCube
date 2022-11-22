@@ -40,8 +40,8 @@ fn draw_line((x1,y1): (usize, usize), (x2,y2): (usize, usize), grid: &mut Vec<Ve
 }
 
 fn main() {
-    let width = 24;
-    let height = 24;
+    let width = 32;
+    let height = 32;
     let box_width = 10.0;
     let box_height = 10.0;
     let box_depth = 10.0;
@@ -87,17 +87,29 @@ fn main() {
         let mut projected_verticies = vec![vec![0 as f32;2];8];
 
         for (i, vertex) in verticies.iter().enumerate() {
-            let x = vertex[0] as f32 * box_width - box_width/2.0;
-            let y = vertex[1] as f32 * box_height - box_height/2.0;
-            let z = vertex[2] as f32 * box_depth - box_depth/2.0;
+            let x = (vertex[0] as f32 - 0.5) * box_width;
+            let y = (vertex[1] as f32 - 0.5) * box_height;
+            let z = (vertex[2] as f32 - 0.5) * box_depth;
 
 
             //rotate around y axis
             let new_x = x * angle.cos() as f32 - z * angle.sin() as f32;
             let new_z = x * angle.sin() as f32 + z * angle.cos() as f32;
 
+            //rotate around x axis
+            let new_y = y * angle.cos() as f32 - new_z * angle.sin() as f32;
+            let new_z = y * angle.sin() as f32 + new_z * angle.cos() as f32;
+
+            //rotate around z axis
+            //let new_x = new_x * angle.cos() as f32 - new_y * angle.sin() as f32;
+            //let new_y = new_x * angle.sin() as f32 + new_y * angle.cos() as f32;
+
             let x_projected = new_x * focal_length / (new_z + focal_length) + (width as f32 / 2.0);
-            let y_projected = y * focal_length / (new_z + focal_length)  +(height as f32 / 2.0);
+            let y_projected = new_y * focal_length / (new_z + focal_length) +(height as f32 / 2.0);
+
+
+            //let x_projected = new_x * focal_length / (new_z + focal_length) + (width as f32 / 2.0);
+            //let y_projected = y * focal_length / (new_z + focal_length)  +(height as f32 / 2.0);
 
             //let x_projected = x * focal_length / (z + focal_length);
             //let y_projected = y * focal_length / (z + focal_length);
