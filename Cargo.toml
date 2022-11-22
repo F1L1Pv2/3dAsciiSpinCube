@@ -9,3 +9,4 @@ edition = "2021"
 opt-level = 3
 
 [dependencies]
+config = "0.13"

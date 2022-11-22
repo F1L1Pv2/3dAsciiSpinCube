@@ -1,6 +1,8 @@
 use std::thread;
 use std::time;
 
+use config::Config;
+
 fn draw_grid(grid: &Vec<Vec<String>>) {
     for row in grid {
         for cell in row {
@@ -44,17 +46,43 @@ fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec
 }
 
 fn main() {
-    // Constant values for testing
-    const WIDTH: usize = 32;
-    const HEIGHT: usize = 32;
-    const BOX_WIDTH: f32 = 10.0;
-    const BOX_HEIGHT: f32 = 10.0;
-    const BOX_DEPTH: f32 = 10.0;
-    const ROTATE_SPEED: f32 = 0.025;
-    const FOCAL_LENGTH: f32 = 64.0;
+    // Check if the yaml settings file exists
+    const CONFIGPATH: &str = "Settings.toml";
+    if !std::path::Path::new(CONFIGPATH).exists() {
+        println!("\nWARNING! No settings file found. Creating one now... \n");
+        let content = r#"
+# This is the config file. If you want to change values, remember to keep the .0 at the end of the number.
+WIDTH = 32
+HEIGHT = 32
+BOX_WIDTH = 10.0
+BOX_HEIGHT = 10.0
+BOX_DEPTH = 10.0
+ROTATE_SPEED = 0.025
+FOCAL_LENGTH = 64.0
+"#;
+        match std::fs::write(CONFIGPATH, content) {
+            Ok(_) => (),
+            Err(e) => panic!("Error creating {} file: {}", CONFIGPATH, e),
+        };
+    }
+
+    // Load toml config file
+    let config: Config = config::Config::builder()
+        .add_source(config::File::with_name(CONFIGPATH))
+        .build()
+        .unwrap();
+
+    // Set variable consts from config file
+    let width: usize = config.get_int("WIDTH").unwrap() as usize;
+    let height: usize = config.get_int("HEIGHT").unwrap() as usize;
+    let box_width: f32 = config.get_float("BOX_WIDTH").unwrap() as f32;
+    let box_height: f32 = config.get_float("BOX_HEIGHT").unwrap() as f32;
+    let box_depth: f32 = config.get_float("BOX_DEPTH").unwrap() as f32;
+    let rotate_speed: f32 = config.get_float("ROTATE_SPEED").unwrap() as f32;
+    let focal_length: f32 = config.get_float("FOCAL_LENGTH").unwrap() as f32;
 
     // Create a 3D grid of strings
-    let mut grid = vec![vec![" ".to_string(); WIDTH]; HEIGHT];
+    let mut grid = vec![vec![" ".to_string(); width]; height];
 
     // Define the 3D points of the box
     let mut verticies = vec![vec![0; 3]; 8];
@@ -96,9 +124,9 @@ fn main() {
         let mut projected_verticies: Vec<Vec<f32>> = vec![vec![0.0; 2]; verticies.len()];
 
         for (i, vertex) in verticies.iter().enumerate() {
-            let x = (vertex[0] as f32 - 0.5) * BOX_WIDTH;
-            let y = (vertex[1] as f32 - 0.5) * BOX_HEIGHT;
-            let z = (vertex[2] as f32 - 0.5) * BOX_DEPTH;
+            let x = (vertex[0] as f32 - 0.5) * box_width;
+            let y = (vertex[1] as f32 - 0.5) * box_height;
+            let z = (vertex[2] as f32 - 0.5) * box_depth;
 
             //rotate around y axis
             let new_x = x * angle.cos() - z * angle.sin();
@@ -112,8 +140,8 @@ fn main() {
             //let new_x = new_x * angle.cos() - new_y * angle.sin();
             //let new_y = new_x * angle.sin() + new_y * angle.cos();
 
-            let x_projected = new_x * FOCAL_LENGTH / (new_z + FOCAL_LENGTH) + (WIDTH as f32 / 2.0);
-            let y_projected = new_y * FOCAL_LENGTH / (new_z + FOCAL_LENGTH) + (HEIGHT as f32 / 2.0);
+            let x_projected = new_x * focal_length / (new_z + focal_length) + (width as f32 / 2.0);
+            let y_projected = new_y * focal_length / (new_z + focal_length) + (height as f32 / 2.0);
 
             //let x_projected = new_x * focal_length / (new_z + focal_length) + (width as f32 / 2.0);
             //let y_projected = y * focal_length / (new_z + focal_length)  +(height as f32 / 2.0);
@@ -134,7 +162,7 @@ fn main() {
             draw_line((x1, y1), (x2, y2), &mut grid);
         }
 
-        // 
+        //
         for vertex in projected_verticies {
             let x = vertex[0] as usize;
             let y = vertex[1] as usize;
@@ -146,7 +174,7 @@ fn main() {
 
         // Sleep for 10 miliseconds
         thread::sleep(time::Duration::from_millis(10));
-        angle += ROTATE_SPEED;
+        angle += rotate_speed;
 
         // Clear the screen
         print!("\x1B[2J\x1B[1;1H");
