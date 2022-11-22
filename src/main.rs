@@ -47,8 +47,10 @@ fn main() {
     let box_depth = 10.0;
     let mut grid = vec![vec![" ".to_string(); width]; height];
 
-    let focal_length = 16.0;
+    let focal_length = 64.0;
 
+
+    //Cube
     let mut verticies = vec![vec![0;3];8];
     verticies[0] = vec![0,0,0];
     verticies[1] = vec![0,0,1];
@@ -84,7 +86,7 @@ fn main() {
             }
         }
 
-        let mut projected_verticies = vec![vec![0 as f32;2];8];
+        let mut projected_verticies = vec![vec![0 as f32;2];verticies.len()];
 
         for (i, vertex) in verticies.iter().enumerate() {
             let x = (vertex[0] as f32 - 0.5) * box_width;
