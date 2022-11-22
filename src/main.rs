@@ -1,4 +1,5 @@
 use std::thread;
+use std::time;
 
 fn draw_grid(grid: &Vec<Vec<String>>) {
     for row in grid {
@@ -16,12 +17,12 @@ fn change_cell(grid: &mut [Vec<String>], x: usize, y: usize, new_value: String) 
 }
 
 fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec<String>]) {
-    let mut x = x1;
-    let mut y = y1;
-    let dx = (x2 as i32 - x1 as i32).abs();
-    let dy = (y2 as i32 - y1 as i32).abs();
-    let sx = if x1 < x2 { 1 } else { -1 };
-    let sy = if y1 < y2 { 1 } else { -1 };
+    let mut x: usize = x1;
+    let mut y: usize = y1;
+    let dx: i32 = (x2 as i32 - x1 as i32).abs();
+    let dy: i32 = (y2 as i32 - y1 as i32).abs();
+    let sx: i32 = if x1 < x2 { 1 } else { -1 };
+    let sy: i32 = if y1 < y2 { 1 } else { -1 };
     let mut err = dx - dy;
 
     loop {
@@ -50,11 +51,10 @@ fn main() {
     const BOX_HEIGHT: f32 = 10.0;
     const BOX_DEPTH: f32 = 10.0;
     const ROTATE_SPEED: f32 = 0.025;
+    const FOCAL_LENGTH: f32 = 64.0;
 
     // Create a 3D grid of strings
     let mut grid = vec![vec![" ".to_string(); WIDTH]; HEIGHT];
-
-    const FOCAL_LENGTH: f32 = 64.0;
 
     // Define the 3D points of the box
     let mut verticies = vec![vec![0; 3]; 8];
@@ -93,7 +93,7 @@ fn main() {
         }
 
         // Start fancy math
-        let mut projected_verticies = vec![vec![0 as f32; 2]; verticies.len()];
+        let mut projected_verticies: Vec<Vec<f32>> = vec![vec![0.0; 2]; verticies.len()];
 
         for (i, vertex) in verticies.iter().enumerate() {
             let x = (vertex[0] as f32 - 0.5) * BOX_WIDTH;
@@ -101,16 +101,16 @@ fn main() {
             let z = (vertex[2] as f32 - 0.5) * BOX_DEPTH;
 
             //rotate around y axis
-            let new_x = x * angle.cos() as f32 - z * angle.sin() as f32;
-            let new_z = x * angle.sin() as f32 + z * angle.cos() as f32;
+            let new_x = x * angle.cos() - z * angle.sin();
+            let new_z = x * angle.sin() + z * angle.cos();
 
             //rotate around x axis
-            let new_y = y * angle.cos() as f32 - new_z * angle.sin() as f32;
-            let new_z = y * angle.sin() as f32 + new_z * angle.cos() as f32;
+            let new_y = y * angle.cos() - new_z * angle.sin();
+            let new_z = y * angle.sin() + new_z * angle.cos();
 
             //rotate around z axis
-            //let new_x = new_x * angle.cos() as f32 - new_y * angle.sin() as f32;
-            //let new_y = new_x * angle.sin() as f32 + new_y * angle.cos() as f32;
+            //let new_x = new_x * angle.cos() - new_y * angle.sin();
+            //let new_y = new_x * angle.sin() + new_y * angle.cos();
 
             let x_projected = new_x * FOCAL_LENGTH / (new_z + FOCAL_LENGTH) + (WIDTH as f32 / 2.0);
             let y_projected = new_y * FOCAL_LENGTH / (new_z + FOCAL_LENGTH) + (HEIGHT as f32 / 2.0);
@@ -127,10 +127,10 @@ fn main() {
 
         // Draw lines between verticies
         for edge in &edges {
-            let x1 = projected_verticies[edge[0]][0] as usize;
-            let y1 = projected_verticies[edge[0]][1] as usize;
-            let x2 = projected_verticies[edge[1]][0] as usize;
-            let y2 = projected_verticies[edge[1]][1] as usize;
+            let x1: usize = projected_verticies[edge[0]][0] as usize;
+            let y1: usize = projected_verticies[edge[0]][1] as usize;
+            let x2: usize = projected_verticies[edge[1]][0] as usize;
+            let y2: usize = projected_verticies[edge[1]][1] as usize;
             draw_line((x1, y1), (x2, y2), &mut grid);
         }
 
@@ -145,7 +145,7 @@ fn main() {
         draw_grid(&grid);
 
         // Sleep for 10 miliseconds
-        thread::sleep(std::time::Duration::from_millis(10));
+        thread::sleep(time::Duration::from_millis(10));
         angle += ROTATE_SPEED;
 
         // Clear the screen
