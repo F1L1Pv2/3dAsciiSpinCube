@@ -62,12 +62,12 @@ HEIGHT = 32
 BOX_WIDTH = 10.0
 BOX_HEIGHT = 10.0
 BOX_DEPTH = 10.0
-ROTATE_SPEED = 0.025
+ROTATE_SPEED = 3.0
 FOCAL_LENGTH = 64.0
 
 # Experimental options
 BETA_SCREEN = false
-FPS = 60;
+FPS = 60
 "#;
         match std::fs::write(CONFIGPATH, content) {
             Ok(_) => (),
