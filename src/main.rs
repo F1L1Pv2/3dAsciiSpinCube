@@ -17,7 +17,10 @@ fn draw_grid(grid: &Vec<Vec<String>>) {
 }
 
 fn change_cell(grid: &mut [Vec<String>], x: usize, y: usize, new_value: String) {
-    grid[y][x] = new_value;
+    // Check if cell is in bounds
+    if x < grid.len() && y < grid[0].len() {
+        grid[x][y] = new_value;
+    }
 }
 
 fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec<String>]) {
@@ -62,7 +65,7 @@ BOX_DEPTH = 10.0
 ROTATE_SPEED = 0.025
 FOCAL_LENGTH = 64.0
 
-# Beta options
+# Experimental options
 BETA_SCREEN = false
 FPS = 60;
 "#;
@@ -140,27 +143,19 @@ FPS = 60;
             let y = (vertex[1] as f32 - 0.5) * box_height;
             let z = (vertex[2] as f32 - 0.5) * box_depth;
 
-            //rotate around y axis
+            // Rotate around Y axis
             let new_x = x * angle.cos() - z * angle.sin();
             let new_z = x * angle.sin() + z * angle.cos();
 
-            //rotate around x axis
+            // Rotate around X axis
             let new_y = y * angle.cos() - new_z * angle.sin();
             let new_z = y * angle.sin() + new_z * angle.cos();
 
-            //rotate around z axis
-            //let new_x = new_x * angle.cos() - new_y * angle.sin();
-            //let new_y = new_x * angle.sin() + new_y * angle.cos();
-
+            // Project 3D to 2D
             let x_projected = new_x * focal_length / (new_z + focal_length) + (width as f32 / 2.0);
             let y_projected = new_y * focal_length / (new_z + focal_length) + (height as f32 / 2.0);
 
-            //let x_projected = new_x * focal_length / (new_z + focal_length) + (width as f32 / 2.0);
-            //let y_projected = y * focal_length / (new_z + focal_length)  +(height as f32 / 2.0);
-
-            //let x_projected = x * focal_length / (z + focal_length);
-            //let y_projected = y * focal_length / (z + focal_length);
-
+            // Add projected points to projected_verticies
             projected_verticies[i] = vec![x_projected, y_projected];
         }
         // End of fancy math
