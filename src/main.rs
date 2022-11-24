@@ -61,6 +61,10 @@ BOX_HEIGHT = 10.0
 BOX_DEPTH = 10.0
 ROTATE_SPEED = 0.025
 FOCAL_LENGTH = 64.0
+
+# Beta options
+BETA_SCREEN = false
+FPS = 60;
 "#;
         match std::fs::write(CONFIGPATH, content) {
             Ok(_) => (),
@@ -82,6 +86,12 @@ FOCAL_LENGTH = 64.0
     let box_depth: f32 = config.get_float("BOX_DEPTH").unwrap() as f32;
     let rotate_speed: f32 = config.get_float("ROTATE_SPEED").unwrap() as f32;
     let focal_length: f32 = config.get_float("FOCAL_LENGTH").unwrap() as f32;
+
+    let beta_screen: bool = config.get_bool("BETA_SCREEN").unwrap();
+    let fps: u64 = config.get_int("FPS").unwrap() as u64;
+
+    // Calculate rotation speed as fps non dependent
+    let rotate_speed = rotate_speed / fps as f32;
 
     // Create a 3D grid of strings
     let mut grid = vec![vec![" ".to_string(); width]; height];
@@ -174,11 +184,15 @@ FOCAL_LENGTH = 64.0
 
         draw_grid(&grid);
 
-        // Sleep for 10 miliseconds
-        thread::sleep(time::Duration::from_millis(10));
+        // Update every x fps
+        thread::sleep(time::Duration::from_millis(1000 / fps));
+
+        // Add to angle
         angle += rotate_speed;
 
         // Clear the screen
-        print!("\x1B[2J\x1B[1;1H");
+        if beta_screen {
+            print!("\x1B[2J\x1B[1;1H");
+        }
     }
 }
