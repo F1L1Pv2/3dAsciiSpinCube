@@ -4,14 +4,16 @@ use std::time;
 use config::Config;
 
 fn draw_grid(grid: &Vec<Vec<String>>) {
+    let mut out_str = String::new();
     for row in grid {
         for cell in row {
             // Print with space padding (for alignment)
-            print!("{} ", cell);
+            let outcell = cell.clone() + " ";
+            out_str+=outcell.as_str();
         }
-        // Print newline
-        println!();
+        out_str+="\n";
     }
+    println!("{}", out_str);
 }
 
 fn change_cell(grid: &mut [Vec<String>], x: usize, y: usize, new_value: String) {
