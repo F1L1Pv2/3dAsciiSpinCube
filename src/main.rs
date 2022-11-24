@@ -63,15 +63,16 @@ fn main() {
         println!("\nWARNING! No settings file found. Creating one now... \n");
         let content = r#"
 # This is the config file. If you want to change values, remember to keep the .0 at the end of the number.
-WIDTH = 25
-HEIGHT = 25
-BOX_WIDTH = 10.0
-BOX_HEIGHT = 10.0
-BOX_DEPTH = 5.0
+VIEW_WIDTH = 25
+VIEW_HEIGHT = 25
+WIDTH = 5.0
+HEIGHT = 5.0
+DEPTH = 5.0
 ROTATE_SPEED = 3.0
 FOCAL_LENGTH = 64.0
 
 # Experimental options
+# Turn this option to false if you're having trouble with the program showing a black screen
 BETA_SCREEN = true
 FPS = 30
 "#;
@@ -88,11 +89,11 @@ FPS = 30
         .unwrap();
 
     // Set variable consts from config file
-    let width: usize = config.get_int("WIDTH").unwrap() as usize;
-    let height: usize = config.get_int("HEIGHT").unwrap() as usize;
-    let box_width: f32 = config.get_float("BOX_WIDTH").unwrap() as f32;
-    let box_height: f32 = config.get_float("BOX_HEIGHT").unwrap() as f32;
-    let box_depth: f32 = config.get_float("BOX_DEPTH").unwrap() as f32;
+    let view_width: usize = config.get_int("VIEW_WIDTH").unwrap() as usize;
+    let view_height: usize = config.get_int("VIEW_HEIGHT").unwrap() as usize;
+    let width: f32 = config.get_float("WIDTH").unwrap() as f32;
+    let height: f32 = config.get_float("HEIGHT").unwrap() as f32;
+    let depth: f32 = config.get_float("DEPTH").unwrap() as f32;
     let rotate_speed: f32 = config.get_float("ROTATE_SPEED").unwrap() as f32;
     let focal_length: f32 = config.get_float("FOCAL_LENGTH").unwrap() as f32;
 
@@ -103,10 +104,11 @@ FPS = 30
     let rotate_speed = rotate_speed / fps as f32;
 
     // Create a 3D grid of strings
-    let mut grid = vec![vec![" ".to_string(); width]; height];
+    let mut grid = vec![vec![" ".to_string(); view_width]; view_height];
 
     // Define the 3D points of the box
     let mut verticies = vec![vec![0; 3]; 8];
+    // CUBE
     verticies[0] = vec![-1, -1, -1];
     verticies[1] = vec![1, -1, -1];
     verticies[2] = vec![-1, 1, -1];
@@ -118,6 +120,7 @@ FPS = 30
 
     // Define the 3D edges of the box
     let mut edges = vec![vec![0; 2]; 12];
+    // BOX
     edges[0] = vec![0, 1];
     edges[1] = vec![0, 2];
     edges[2] = vec![0, 4];
@@ -145,9 +148,9 @@ FPS = 30
         let mut projected_verticies: Vec<Vec<f32>> = vec![vec![0.0; 2]; verticies.len()];
 
         for (i, vertex) in verticies.iter().enumerate() {
-            let x = vertex[0] as f32 * box_width;
-            let y = vertex[1] as f32 * box_height;
-            let z = vertex[2] as f32 * box_depth;
+            let x = vertex[0] as f32 * width;
+            let y = vertex[1] as f32 * height;
+            let z = vertex[2] as f32 * depth;
 
             // Rotate around Y axis
             let new_x = x * angle.cos() - z * angle.sin();
@@ -158,8 +161,8 @@ FPS = 30
             let new_z = y * angle.sin() + new_z * angle.cos();
 
             // Project 3D to 2D
-            let x_projected = new_x * focal_length / (new_z + focal_length) + (width as f32 / 2.0);
-            let y_projected = new_y * focal_length / (new_z + focal_length) + (height as f32 / 2.0);
+            let x_projected = new_x * focal_length / (new_z + focal_length) + (view_width as f32 / 2.0);
+            let y_projected = new_y * focal_length / (new_z + focal_length) + (view_height as f32 / 2.0);
 
             // Add projected points to projected_verticies
             projected_verticies[i] = vec![x_projected, y_projected];
