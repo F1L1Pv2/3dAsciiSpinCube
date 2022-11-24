@@ -3,15 +3,21 @@ use std::time;
 
 use config::Config;
 
+
 fn draw_grid(grid: &Vec<Vec<String>>) {
     let mut out_str = String::new();
     for row in grid {
         for cell in row {
             // Print with space padding (for alignment)
-            let outcell = cell.clone() + " ";
-            out_str+=outcell.as_str();
+            // Color the wall corner in red
+            if cell == "O" {
+                out_str.push_str(&format!("\x1b[31m{}\x1b[0m ", cell));
+            } else {
+                out_str.push_str(&format!("\x1b[33m{}\x1b[0m ", cell));
+            }
+            //out_str += outcell.as_str();
         }
-        out_str+="\n";
+        out_str += "\n";
     }
     println!("{}", out_str);
 }
@@ -57,17 +63,17 @@ fn main() {
         println!("\nWARNING! No settings file found. Creating one now... \n");
         let content = r#"
 # This is the config file. If you want to change values, remember to keep the .0 at the end of the number.
-WIDTH = 32
-HEIGHT = 32
+WIDTH = 25
+HEIGHT = 25
 BOX_WIDTH = 10.0
 BOX_HEIGHT = 10.0
-BOX_DEPTH = 10.0
+BOX_DEPTH = 5.0
 ROTATE_SPEED = 3.0
 FOCAL_LENGTH = 64.0
 
 # Experimental options
-BETA_SCREEN = false
-FPS = 60
+BETA_SCREEN = true
+FPS = 30
 "#;
         match std::fs::write(CONFIGPATH, content) {
             Ok(_) => (),
@@ -101,13 +107,13 @@ FPS = 60
 
     // Define the 3D points of the box
     let mut verticies = vec![vec![0; 3]; 8];
-    verticies[0] = vec![0, 0, 0];
-    verticies[1] = vec![0, 0, 1];
-    verticies[2] = vec![0, 1, 0];
-    verticies[3] = vec![0, 1, 1];
-    verticies[4] = vec![1, 0, 0];
-    verticies[5] = vec![1, 0, 1];
-    verticies[6] = vec![1, 1, 0];
+    verticies[0] = vec![-1, -1, -1];
+    verticies[1] = vec![1, -1, -1];
+    verticies[2] = vec![-1, 1, -1];
+    verticies[3] = vec![1, 1, -1];
+    verticies[4] = vec![-1, -1, 1];
+    verticies[5] = vec![1, -1, 1];
+    verticies[6] = vec![-1, 1, 1];
     verticies[7] = vec![1, 1, 1];
 
     // Define the 3D edges of the box
@@ -139,9 +145,9 @@ FPS = 60
         let mut projected_verticies: Vec<Vec<f32>> = vec![vec![0.0; 2]; verticies.len()];
 
         for (i, vertex) in verticies.iter().enumerate() {
-            let x = (vertex[0] as f32 - 0.5) * box_width;
-            let y = (vertex[1] as f32 - 0.5) * box_height;
-            let z = (vertex[2] as f32 - 0.5) * box_depth;
+            let x = vertex[0] as f32 * box_width;
+            let y = vertex[1] as f32 * box_height;
+            let z = vertex[2] as f32 * box_depth;
 
             // Rotate around Y axis
             let new_x = x * angle.cos() - z * angle.sin();
