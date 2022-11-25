@@ -4,22 +4,37 @@ use std::time;
 use config::Config;
 use device_query::{DeviceQuery, DeviceState, Keycode};
 
-
-fn draw_grid(grid: &Vec<Vec<String>>) {
+fn draw_grid(
+    grid: &Vec<Vec<String>>,
+    color: &bool,
+    pitch: &f32,
+    yaw: &f32,
+    roll: &f32,
+    focal_length: &f32,
+) {
     let mut out_str = String::new();
     for row in grid {
         for cell in row {
             // Print with space padding (for alignment)
             // Color the wall corner in red
-            if cell == "O" {
-                out_str.push_str(&format!("\x1b[31m{}\x1b[0m ", cell));
+            if *color {
+                if cell == "X" {
+                    out_str.push_str(&format!("\x1b[31m{}\x1b[0m ", cell));
+                } else {
+                    out_str.push_str(&format!("\x1b[32m{}\x1b[0m ", cell));
+                }
             } else {
-                out_str.push_str(&format!("\x1b[33m{}\x1b[0m ", cell));
+                out_str.push_str(&format!("{} ", cell));
             }
             //out_str += outcell.as_str();
         }
         out_str += "\n";
     }
+    println!(
+        // Round to 2 decimal places
+        "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}",
+        focal_length, pitch, yaw, roll
+    );
     println!("{}", out_str);
 }
 
@@ -58,7 +73,6 @@ fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec
 }
 
 fn main() {
-
     let device_state = DeviceState::new();
 
     // Check if the yaml settings file exists
@@ -74,11 +88,12 @@ HEIGHT = 5.0
 DEPTH = 5.0
 ROTATE_SPEED = 3.0
 FOCAL_LENGTH = 64.0
-
+    
 # Experimental options
 # Turn this option to false if you're having a black screen
-BETA_SCREEN = true
-FPS = 30
+CLEAR_SCREEN = true
+FPS = 60
+COLOR = true
 "#;
         match std::fs::write(CONFIGPATH, content) {
             Ok(_) => (),
@@ -101,8 +116,9 @@ FPS = 30
     let rotate_speed: f32 = config.get_float("ROTATE_SPEED").unwrap() as f32;
     let mut focal_length: f32 = config.get_float("FOCAL_LENGTH").unwrap() as f32;
 
-    let beta_screen: bool = config.get_bool("BETA_SCREEN").unwrap();
+    let clear_screen: bool = config.get_bool("CLEAR_SCREEN").unwrap();
     let fps: u64 = config.get_int("FPS").unwrap() as u64;
+    let color: bool = config.get_bool("COLOR").unwrap();
 
     // Calculate rotation speed as fps non dependent
     let rotate_speed = rotate_speed / fps as f32;
@@ -121,9 +137,6 @@ FPS = 30
     verticies[5] = vec![1, -1, 1];
     verticies[6] = vec![-1, 1, 1];
     verticies[7] = vec![1, 1, 1];
-
-    
-
 
     // Define the 3D edges of the box
     let mut edges = vec![vec![0; 2]; 12];
@@ -145,7 +158,7 @@ FPS = 30
     let mut yaw: f32 = 0.0;
     let mut roll: f32 = 0.0;
 
-    loop {
+    'main: loop {
         // Clear grid
         for row in grid.iter_mut() {
             for cell in row.iter_mut() {
@@ -164,14 +177,21 @@ FPS = 30
             let beta = -pitch;
             let gamma = yaw;
             let alpha = roll;
-            
-            let new_x = x * (alpha.cos() * beta.cos()) + y * (alpha.cos() * beta.sin() * gamma.sin() - alpha.sin() * gamma.cos()) + z * (alpha.cos() * beta.sin() * gamma.cos() + alpha.sin() * gamma.sin());
-            let new_y = x * (alpha.sin() * beta.cos()) + y * (alpha.sin() * beta.sin() * gamma.sin() + alpha.cos() * gamma.cos()) + z * (alpha.sin() * beta.sin() * gamma.cos() - alpha.cos() * gamma.sin());
-            let new_z = -x * beta.sin() + y * beta.cos() * gamma.sin() + z * beta.cos() * gamma.cos();
+
+            let new_x = x * (alpha.cos() * beta.cos())
+                + y * (alpha.cos() * beta.sin() * gamma.sin() - alpha.sin() * gamma.cos())
+                + z * (alpha.cos() * beta.sin() * gamma.cos() + alpha.sin() * gamma.sin());
+            let new_y = x * (alpha.sin() * beta.cos())
+                + y * (alpha.sin() * beta.sin() * gamma.sin() + alpha.cos() * gamma.cos())
+                + z * (alpha.sin() * beta.sin() * gamma.cos() - alpha.cos() * gamma.sin());
+            let new_z =
+                -x * beta.sin() + y * beta.cos() * gamma.sin() + z * beta.cos() * gamma.cos();
 
             // Project 3D to 2D
-            let x_projected = new_x * focal_length / (new_z + focal_length) + (view_width as f32 / 2.0);
-            let y_projected = new_y * focal_length / (new_z + focal_length) + (view_height as f32 / 2.0);
+            let x_projected =
+                new_x * focal_length / (new_z + focal_length) + (view_width as f32 / 2.0);
+            let y_projected =
+                new_y * focal_length / (new_z + focal_length) + (view_height as f32 / 2.0);
 
             // Add projected points to projected_verticies
             projected_verticies[i] = vec![x_projected, y_projected];
@@ -195,52 +215,39 @@ FPS = 30
             //println!("Drawing point at {}, {}", x, y);
         }
 
-        draw_grid(&grid);
+        draw_grid(&grid, &color, &pitch, &yaw, &roll, &focal_length);
 
         let keys: Vec<Keycode> = device_state.get_keys();
 
-        if keys.contains(&Keycode::Escape) {
-            break;
-        }
-
-        if keys.contains(&Keycode::A) {
-            yaw += rotate_speed;
-        }
-
-        if keys.contains(&Keycode::D) {
-            yaw -= rotate_speed;
-        }
-
-        if keys.contains(&Keycode::W) {
-            pitch += rotate_speed;
-        }
-
-        if keys.contains(&Keycode::S) {
-            pitch -= rotate_speed;
-        }
-
-        if keys.contains(&Keycode::Q) {
-            roll += rotate_speed;
-        }
-
-        if keys.contains(&Keycode::E) {
-            roll -= rotate_speed;
-        }
-
-        //change focal length
-        if keys.contains(&Keycode::I) {
-            focal_length += 1.0;
-        }
-
-        if keys.contains(&Keycode::K) {
-            focal_length -= 1.0;
+        // Match the keyboard input to the correct action
+        for key in keys {
+            match key {
+                Keycode::W | Keycode::Up => pitch += rotate_speed,
+                Keycode::A | Keycode::Left => yaw += rotate_speed,
+                Keycode::S | Keycode::Down => pitch -= rotate_speed,
+                Keycode::D | Keycode::Right => yaw -= rotate_speed,
+                Keycode::Q => roll += rotate_speed,
+                Keycode::E => roll -= rotate_speed,
+                // Check if focal length is not too small
+                Keycode::Z => if focal_length > 10.0 { focal_length -= 1.0 },
+                // Check if focal length is not too big
+                Keycode::X => if focal_length < 100.0 { focal_length += 1.0 },
+                Keycode::R => {
+                    pitch = 0.0;
+                    yaw = 0.0;
+                    roll = 0.0;
+                    focal_length = config.get_float("FOCAL_LENGTH").unwrap() as f32;
+                }
+                Keycode::Escape => break 'main,
+                _ => (),
+            }
         }
 
         // Update every x fps
         thread::sleep(time::Duration::from_millis(1000 / fps));
 
         // Clear the screen
-        if beta_screen {
+        if clear_screen {
             print!("\x1B[2J\x1B[1;1H");
         }
     }
