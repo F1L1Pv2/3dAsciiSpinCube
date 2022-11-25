@@ -107,6 +107,7 @@ fn main() {
         .execute(terminal::Clear(terminal::ClearType::All))
         .unwrap();
 
+    // Start listening for key presses
     let device_state = DeviceState::new();
 
     // Check if the yaml settings file exists
@@ -163,7 +164,7 @@ COLOR = true
 
     // Define the 3D points of the box
     let mut verticies = vec![vec![0; 3]; 8];
-    // CUBE
+    // BOX
     verticies[0] = vec![-1, -1, -1];
     verticies[1] = vec![1, -1, -1];
     verticies[2] = vec![-1, 1, -1];
@@ -249,6 +250,7 @@ COLOR = true
             change_cell(&mut grid, x, y, "O".to_string());
             //println!("Drawing point at {}, {}", x, y);
         }
+
 
         draw_grid(&grid, &color, &pitch, &yaw, &roll, &focal_length);
 
