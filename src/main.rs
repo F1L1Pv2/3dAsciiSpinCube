@@ -26,11 +26,11 @@ fn draw_grid(
         .queue(style::PrintStyledContent(
             format!(
                 "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n",
-                focal_length, 
+                focal_length,
                 // Convert to degrees
-                pitch * (180.0 / std::f64::consts::PI) as f32, 
-                yaw * (180.0 / std::f64::consts::PI) as f32, 
-                roll * (180.0 / std::f64::consts::PI) as f32, 
+                pitch * (180.0 / std::f64::consts::PI) as f32,
+                yaw * (180.0 / std::f64::consts::PI) as f32,
+                roll * (180.0 / std::f64::consts::PI) as f32,
             )
             .as_str()
             .red(),
@@ -112,7 +112,6 @@ fn main() {
     // Check if the yaml settings file exists
     const CONFIGPATH: &str = "Settings.toml";
     if !std::path::Path::new(CONFIGPATH).exists() {
-        println!("\nWARNING! No settings file found. Creating one now... \n");
         let content = r#"
 # This is the config file. If you want to change values, remember to keep the .0 at the end of the number.
 VIEW_WIDTH = 25
@@ -153,6 +152,8 @@ COLOR = true
     let clear_screen: bool = config.get_bool("CLEAR_SCREEN").unwrap();
     let fps: u64 = config.get_int("FPS").unwrap() as u64;
     let color: bool = config.get_bool("COLOR").unwrap();
+
+    let mut animation = false;
 
     // Calculate rotation speed as fps non dependent
     let rotate_speed = rotate_speed / fps as f32;
@@ -254,35 +255,54 @@ COLOR = true
         let keys: Vec<Keycode> = device_state.get_keys();
 
         // Match the keyboard input to the correct action
-        for key in keys {
-            match key {
-                Keycode::W | Keycode::Up => pitch += rotate_speed,
-                Keycode::A | Keycode::Left => yaw += rotate_speed,
-                Keycode::S | Keycode::Down => pitch -= rotate_speed,
-                Keycode::D | Keycode::Right => yaw -= rotate_speed,
-                Keycode::Q => roll += rotate_speed,
-                Keycode::E => roll -= rotate_speed,
-                // Check if focal length is not too small
-                Keycode::Z => {
-                    if focal_length > 10.0 {
-                        focal_length -= 1.0
+        if !animation {
+            for key in keys {
+                match key {
+                    Keycode::W | Keycode::Up => pitch += rotate_speed,
+                    Keycode::A | Keycode::Left => yaw += rotate_speed,
+                    Keycode::S | Keycode::Down => pitch -= rotate_speed,
+                    Keycode::D | Keycode::Right => yaw -= rotate_speed,
+                    Keycode::Q => roll += rotate_speed,
+                    Keycode::E => roll -= rotate_speed,
+                    // Check if focal length is not too small
+                    Keycode::Z => {
+                        if focal_length > 10.0 {
+                            focal_length -= 1.0
+                        }
                     }
-                }
-                // Check if focal length is not too big
-                Keycode::X => {
-                    if focal_length < 100.0 {
-                        focal_length += 1.0
+                    // Check if focal length is not too big
+                    Keycode::X => {
+                        if focal_length < 100.0 {
+                            focal_length += 1.0
+                        }
                     }
+                    Keycode::R => {
+                        pitch = 0.0;
+                        yaw = 0.0;
+                        roll = 0.0;
+                        focal_length = config.get_float("FOCAL_LENGTH").unwrap() as f32;
+                    }
+                    Keycode::Space => {
+                        // Toggle animation
+                        if animation {
+                            animation = false;
+                        } else {
+                            animation = true;
+                        }
+                    }
+                    Keycode::Escape => break 'main,
+                    _ => (),
                 }
-                Keycode::R => {
-                    pitch = 0.0;
-                    yaw = 0.0;
-                    roll = 0.0;
-                    focal_length = config.get_float("FOCAL_LENGTH").unwrap() as f32;
-                }
-                Keycode::Escape => break 'main,
-                _ => (),
             }
+        }
+        else {
+            // Check if animation is toggled
+            if !keys.contains(&Keycode::Space) {
+                animation = false;
+            }
+            pitch += rotate_speed;
+            yaw += rotate_speed;
+            roll += rotate_speed;
         }
 
         // Update every x fps
