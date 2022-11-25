@@ -11,3 +11,4 @@ opt-level = 3
 [dependencies]
 config = "0.13"
 device_query = "1.1.1"
+crossterm = "0.25.0"

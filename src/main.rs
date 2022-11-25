@@ -1,6 +1,13 @@
 use std::thread;
 use std::time;
 
+
+use std::io::{stdout, Write};
+use crossterm::{
+    ExecutableCommand, QueueableCommand,
+    terminal, cursor, style::{self, Stylize}, Result
+};
+
 use config::Config;
 use device_query::{DeviceQuery, DeviceState, Keycode};
 
@@ -12,30 +19,67 @@ fn draw_grid(
     roll: &f32,
     focal_length: &f32,
 ) {
-    let mut out_str = String::new();
-    for row in grid {
-        for cell in row {
+    //let mut out_str = String::new();
+    //for row in grid {
+    //    for cell in row {
+    //        // Print with space padding (for alignment)
+    //        // Color the wall corner in red
+    //        if *color {
+    //            if cell == "X" {
+    //                out_str.push_str(&format!("\x1b[31m{}\x1b[0m ", cell));
+    //            } else {
+    //                out_str.push_str(&format!("\x1b[32m{}\x1b[0m ", cell));
+    //            }
+    //        } else {
+    //            out_str.push_str(&format!("{} ", cell));
+    //        }
+    //        //out_str += outcell.as_str();
+    //    }
+    //    out_str += "\n";
+    //}
+    //print!(
+    //    // Round to 2 decimal places
+    //    "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n",
+    //    focal_length, pitch, yaw, roll
+    //);
+    //print!("{}", out_str);
+
+    let mut stdout= stdout();
+    stdout
+        .queue(cursor::MoveTo(0, 0 as u16))
+        .unwrap()
+        .queue(style::PrintStyledContent(format!("Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n", focal_length, pitch, yaw, roll).as_str().red()))
+        .unwrap()
+        .flush()
+        .unwrap();
+    for y in 0..grid.len() {
+        for x in 0..grid[y].len() {
             // Print with space padding (for alignment)
             // Color the wall corner in red
             if *color {
-                if cell == "X" {
-                    out_str.push_str(&format!("\x1b[31m{}\x1b[0m ", cell));
-                } else {
-                    out_str.push_str(&format!("\x1b[32m{}\x1b[0m ", cell));
+                if grid[y][x] == "X"{
+                    stdout
+                    .queue(cursor::MoveTo(x as u16*2, y as u16+1))
+                    .unwrap()
+                    .queue(style::PrintStyledContent(grid[y][x].as_str().yellow()))
+                    .unwrap();
+                }else {
+                    stdout
+                    .queue(cursor::MoveTo(x as u16*2, y as u16+1))
+                    .unwrap()
+                    .queue(style::PrintStyledContent(grid[y][x].as_str().red()))
+                    .unwrap();
                 }
             } else {
-                out_str.push_str(&format!("{} ", cell));
+                stdout
+                    .queue(cursor::MoveTo(x as u16*2, y as u16+1))
+                    .unwrap()
+                    .queue(style::Print(" "))
+                    .unwrap();
             }
-            //out_str += outcell.as_str();
         }
-        out_str += "\n";
     }
-    print!(
-        // Round to 2 decimal places
-        "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n",
-        focal_length, pitch, yaw, roll
-    );
-    print!("{}", out_str);
+    stdout.flush().unwrap();
 }
 
 fn change_cell(grid: &mut [Vec<String>], x: usize, y: usize, new_value: String) {
@@ -73,6 +117,10 @@ fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec
 }
 
 fn main() {
+    
+    let mut stdout = stdout();
+    stdout.execute(terminal::Clear(terminal::ClearType::All)).unwrap();
+
     let device_state = DeviceState::new();
 
     // Check if the yaml settings file exists
@@ -91,7 +139,7 @@ FOCAL_LENGTH = 64.0
     
 # Experimental options
 # Turn this option to false if you're having a black screen
-CLEAR_SCREEN = true
+CLEAR_SCREEN = false
 FPS = 60
 COLOR = true
 "#;
@@ -248,7 +296,8 @@ COLOR = true
 
         // Clear the screen
         if clear_screen {
-            print!("\x1B[2J\x1B[1;1H");
+            stdout.execute(terminal::Clear(terminal::ClearType::All)).unwrap();
+        //    print!("\x1B[2J\x1B[1;1H");
         }
     }
 }
