@@ -5,7 +5,7 @@ use std::time;
 use std::io::{stdout, Write};
 use crossterm::{
     ExecutableCommand, QueueableCommand,
-    terminal, cursor, style::{self, Stylize}, Result
+    terminal, cursor, style::{self, Stylize}
 };
 
 use config::Config;
