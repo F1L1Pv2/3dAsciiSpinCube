@@ -30,12 +30,12 @@ fn draw_grid(
         }
         out_str += "\n";
     }
-    println!(
+    print!(
         // Round to 2 decimal places
-        "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}",
+        "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n",
         focal_length, pitch, yaw, roll
     );
-    println!("{}", out_str);
+    print!("{}", out_str);
 }
 
 fn change_cell(grid: &mut [Vec<String>], x: usize, y: usize, new_value: String) {
