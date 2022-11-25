@@ -2,6 +2,7 @@ use std::thread;
 use std::time;
 
 use config::Config;
+use device_query::{DeviceQuery, DeviceState, Keycode};
 
 
 fn draw_grid(grid: &Vec<Vec<String>>) {
@@ -57,6 +58,9 @@ fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec
 }
 
 fn main() {
+
+    let device_state = DeviceState::new();
+
     // Check if the yaml settings file exists
     const CONFIGPATH: &str = "Settings.toml";
     if !std::path::Path::new(CONFIGPATH).exists() {
@@ -95,7 +99,7 @@ FPS = 30
     let height: f32 = config.get_float("HEIGHT").unwrap() as f32;
     let depth: f32 = config.get_float("DEPTH").unwrap() as f32;
     let rotate_speed: f32 = config.get_float("ROTATE_SPEED").unwrap() as f32;
-    let focal_length: f32 = config.get_float("FOCAL_LENGTH").unwrap() as f32;
+    let mut focal_length: f32 = config.get_float("FOCAL_LENGTH").unwrap() as f32;
 
     let beta_screen: bool = config.get_bool("BETA_SCREEN").unwrap();
     let fps: u64 = config.get_int("FPS").unwrap() as u64;
@@ -137,7 +141,9 @@ FPS = 30
     edges[10] = vec![5, 7];
     edges[11] = vec![6, 7];
 
-    let mut angle: f32 = 0.0;
+    let mut pitch: f32 = 0.0;
+    let mut yaw: f32 = 0.0;
+    let mut roll: f32 = 0.0;
 
     loop {
         // Clear grid
@@ -155,13 +161,13 @@ FPS = 30
             let y = vertex[1] as f32 * height;
             let z = vertex[2] as f32 * depth;
 
-            // Rotate around Y axis
-            let new_x = x * angle.cos() - z * angle.sin();
-            let new_z = x * angle.sin() + z * angle.cos();
-
-            // Rotate around X axis
-            let new_y = y * angle.cos() - new_z * angle.sin();
-            let new_z = y * angle.sin() + new_z * angle.cos();
+            let beta = -pitch;
+            let gamma = yaw;
+            let alpha = roll;
+            
+            let new_x = x * (alpha.cos() * beta.cos()) + y * (alpha.cos() * beta.sin() * gamma.sin() - alpha.sin() * gamma.cos()) + z * (alpha.cos() * beta.sin() * gamma.cos() + alpha.sin() * gamma.sin());
+            let new_y = x * (alpha.sin() * beta.cos()) + y * (alpha.sin() * beta.sin() * gamma.sin() + alpha.cos() * gamma.cos()) + z * (alpha.sin() * beta.sin() * gamma.cos() - alpha.cos() * gamma.sin());
+            let new_z = -x * beta.sin() + y * beta.cos() * gamma.sin() + z * beta.cos() * gamma.cos();
 
             // Project 3D to 2D
             let x_projected = new_x * focal_length / (new_z + focal_length) + (view_width as f32 / 2.0);
@@ -191,11 +197,47 @@ FPS = 30
 
         draw_grid(&grid);
 
+        let keys: Vec<Keycode> = device_state.get_keys();
+
+        if keys.contains(&Keycode::Escape) {
+            break;
+        }
+
+        if keys.contains(&Keycode::A) {
+            yaw += rotate_speed;
+        }
+
+        if keys.contains(&Keycode::D) {
+            yaw -= rotate_speed;
+        }
+
+        if keys.contains(&Keycode::W) {
+            pitch += rotate_speed;
+        }
+
+        if keys.contains(&Keycode::S) {
+            pitch -= rotate_speed;
+        }
+
+        if keys.contains(&Keycode::Q) {
+            roll += rotate_speed;
+        }
+
+        if keys.contains(&Keycode::E) {
+            roll -= rotate_speed;
+        }
+
+        //change focal length
+        if keys.contains(&Keycode::I) {
+            focal_length += 1.0;
+        }
+
+        if keys.contains(&Keycode::K) {
+            focal_length -= 1.0;
+        }
+
         // Update every x fps
         thread::sleep(time::Duration::from_millis(1000 / fps));
-
-        // Add to angle
-        angle += rotate_speed;
 
         // Clear the screen
         if beta_screen {
