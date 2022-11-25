@@ -1,78 +1,63 @@
 use std::thread;
 use std::time;
 
-
-use std::io::{stdout, Write};
 use crossterm::{
-    ExecutableCommand, QueueableCommand,
-    terminal, cursor, style::{self, Stylize}
+    cursor,
+    style::{self, Stylize},
+    terminal, ExecutableCommand, QueueableCommand,
 };
+use std::io::{stdout, Write};
 
 use config::Config;
 use device_query::{DeviceQuery, DeviceState, Keycode};
 
 fn draw_grid(
-    grid: &Vec<Vec<String>>,
+    grid: &[Vec<String>],
     color: &bool,
     pitch: &f32,
     yaw: &f32,
     roll: &f32,
     focal_length: &f32,
 ) {
-    //let mut out_str = String::new();
-    //for row in grid {
-    //    for cell in row {
-    //        // Print with space padding (for alignment)
-    //        // Color the wall corner in red
-    //        if *color {
-    //            if cell == "X" {
-    //                out_str.push_str(&format!("\x1b[31m{}\x1b[0m ", cell));
-    //            } else {
-    //                out_str.push_str(&format!("\x1b[32m{}\x1b[0m ", cell));
-    //            }
-    //        } else {
-    //            out_str.push_str(&format!("{} ", cell));
-    //        }
-    //        //out_str += outcell.as_str();
-    //    }
-    //    out_str += "\n";
-    //}
-    //print!(
-    //    // Round to 2 decimal places
-    //    "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n",
-    //    focal_length, pitch, yaw, roll
-    //);
-    //print!("{}", out_str);
-
-    let mut stdout= stdout();
+    let mut stdout = stdout();
     stdout
-        .queue(cursor::MoveTo(0, 0 as u16))
+        .queue(cursor::MoveTo(0, 0_u16))
         .unwrap()
-        .queue(style::PrintStyledContent(format!("Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n", focal_length, pitch, yaw, roll).as_str().red()))
-        .unwrap()
-        .flush()
+        .queue(style::PrintStyledContent(
+            format!(
+                "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n",
+                focal_length, 
+                // Convert to degrees
+                pitch * (180.0 / std::f64::consts::PI) as f32, 
+                yaw * (180.0 / std::f64::consts::PI) as f32, 
+                roll * (180.0 / std::f64::consts::PI) as f32, 
+            )
+            .as_str()
+            .red(),
+        ))
         .unwrap();
-    for y in 0..grid.len() {
+    // Ignore the object, pass the index as y
+    for (y, _) in grid.iter().enumerate() {
         for x in 0..grid[y].len() {
             // Print with space padding (for alignment)
             // Color the wall corner in red
             if *color {
-                if grid[y][x] == "X"{
+                if grid[y][x] == "X" {
                     stdout
-                    .queue(cursor::MoveTo(x as u16*2, y as u16+1))
-                    .unwrap()
-                    .queue(style::PrintStyledContent(grid[y][x].as_str().yellow()))
-                    .unwrap();
-                }else {
+                        .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
+                        .unwrap()
+                        .queue(style::PrintStyledContent(grid[y][x].as_str().yellow()))
+                        .unwrap();
+                } else {
                     stdout
-                    .queue(cursor::MoveTo(x as u16*2, y as u16+1))
-                    .unwrap()
-                    .queue(style::PrintStyledContent(grid[y][x].as_str().red()))
-                    .unwrap();
+                        .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
+                        .unwrap()
+                        .queue(style::PrintStyledContent(grid[y][x].as_str().red()))
+                        .unwrap();
                 }
             } else {
                 stdout
-                    .queue(cursor::MoveTo(x as u16*2, y as u16+1))
+                    .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
                     .unwrap()
                     .queue(style::Print(" "))
                     .unwrap();
@@ -117,9 +102,10 @@ fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec
 }
 
 fn main() {
-    
     let mut stdout = stdout();
-    stdout.execute(terminal::Clear(terminal::ClearType::All)).unwrap();
+    stdout
+        .execute(terminal::Clear(terminal::ClearType::All))
+        .unwrap();
 
     let device_state = DeviceState::new();
 
@@ -277,9 +263,17 @@ COLOR = true
                 Keycode::Q => roll += rotate_speed,
                 Keycode::E => roll -= rotate_speed,
                 // Check if focal length is not too small
-                Keycode::Z => if focal_length > 10.0 { focal_length -= 1.0 },
+                Keycode::Z => {
+                    if focal_length > 10.0 {
+                        focal_length -= 1.0
+                    }
+                }
                 // Check if focal length is not too big
-                Keycode::X => if focal_length < 100.0 { focal_length += 1.0 },
+                Keycode::X => {
+                    if focal_length < 100.0 {
+                        focal_length += 1.0
+                    }
+                }
                 Keycode::R => {
                     pitch = 0.0;
                     yaw = 0.0;
@@ -296,8 +290,10 @@ COLOR = true
 
         // Clear the screen
         if clear_screen {
-            stdout.execute(terminal::Clear(terminal::ClearType::All)).unwrap();
-        //    print!("\x1B[2J\x1B[1;1H");
+            stdout
+                .execute(terminal::Clear(terminal::ClearType::All))
+                .unwrap();
+            //    print!("\x1B[2J\x1B[1;1H");
         }
     }
 }
