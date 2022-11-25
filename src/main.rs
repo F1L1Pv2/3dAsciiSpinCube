@@ -72,7 +72,7 @@ ROTATE_SPEED = 3.0
 FOCAL_LENGTH = 64.0
 
 # Experimental options
-# Turn this option to false if you're having trouble with the program showing a black screen
+# Turn this option to false if you're having a black screen
 BETA_SCREEN = true
 FPS = 30
 "#;
@@ -117,6 +117,9 @@ FPS = 30
     verticies[5] = vec![1, -1, 1];
     verticies[6] = vec![-1, 1, 1];
     verticies[7] = vec![1, 1, 1];
+
+    
+
 
     // Define the 3D edges of the box
     let mut edges = vec![vec![0; 2]; 12];
