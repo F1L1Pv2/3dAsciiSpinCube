@@ -59,7 +59,7 @@ fn draw_grid(
                 stdout
                     .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
                     .unwrap()
-                    .queue(style::Print(" "))
+                    .queue(style::Print(grid[y][x].as_str()))
                     .unwrap();
             }
         }
