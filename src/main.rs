@@ -14,57 +14,74 @@ use device_query::{DeviceQuery, DeviceState, Keycode};
 fn draw_grid(
     grid: &[Vec<String>],
     color: &bool,
+    legacy_mode: &bool,
     pitch: &f32,
     yaw: &f32,
     roll: &f32,
     focal_length: &f32,
 ) {
-    let mut stdout = stdout();
-    stdout
-        .queue(cursor::MoveTo(0, 0_u16))
-        .unwrap()
-        .queue(style::PrintStyledContent(
-            format!(
-                "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n",
-                focal_length,
-                // Convert to degrees
-                pitch * (180.0 / std::f64::consts::PI) as f32,
-                yaw * (180.0 / std::f64::consts::PI) as f32,
-                roll * (180.0 / std::f64::consts::PI) as f32,
-            )
-            .as_str()
-            .red(),
-        ))
-        .unwrap();
-    // Ignore the object, pass the index as y
-    for (y, _) in grid.iter().enumerate() {
-        for x in 0..grid[y].len() {
-            // Print with space padding (for alignment)
-            // Color the wall corner in red
-            if *color {
-                if grid[y][x] == "X" {
-                    stdout
-                        .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
-                        .unwrap()
-                        .queue(style::PrintStyledContent(grid[y][x].as_str().yellow()))
-                        .unwrap();
-                } else {
-                    stdout
-                        .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
-                        .unwrap()
-                        .queue(style::PrintStyledContent(grid[y][x].as_str().red()))
-                        .unwrap();
+    match legacy_mode {
+        true => {
+            let mut stdout = stdout();
+            stdout
+                .queue(cursor::MoveTo(0, 0_u16))
+                .unwrap()
+                .queue(style::PrintStyledContent(
+                    format!(
+                        "Focal Length: {:.2}, Pitch: {:.2}, Yaw: {:.2}, Roll: {:.2}\n",
+                        focal_length,
+                        // Convert to degrees
+                        pitch * (180.0 / std::f64::consts::PI) as f32,
+                        yaw * (180.0 / std::f64::consts::PI) as f32,
+                        roll * (180.0 / std::f64::consts::PI) as f32,
+                    )
+                    .as_str()
+                    .red(),
+                ))
+                .unwrap();
+            // Ignore the object, pass the index as y
+            for (y, _) in grid.iter().enumerate() {
+                for x in 0..grid[y].len() {
+                    // Print with space padding (for alignment)
+                    // Color the wall corner in red
+                    if *color {
+                        if grid[y][x] == "X" {
+                            stdout
+                                .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
+                                .unwrap()
+                                .queue(style::PrintStyledContent(grid[y][x].as_str().yellow()))
+                                .unwrap();
+                        } else {
+                            stdout
+                                .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
+                                .unwrap()
+                                .queue(style::PrintStyledContent(grid[y][x].as_str().red()))
+                                .unwrap();
+                        }
+                    } else {
+                        stdout
+                            .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
+                            .unwrap()
+                            .queue(style::Print(grid[y][x].as_str()))
+                            .unwrap();
+                    }
                 }
-            } else {
-                stdout
-                    .queue(cursor::MoveTo(x as u16 * 2, y as u16 + 1))
-                    .unwrap()
-                    .queue(style::Print(grid[y][x].as_str()))
-                    .unwrap();
+                stdout.flush().unwrap();
             }
         }
+        false => {
+            let mut out_str = String::new();
+            for row in grid {
+                for cell in row {
+                    // Print with space padding (for alignment)
+                    let outcell = cell.clone() + " ";
+                    out_str+=outcell.as_str();
+                }
+                out_str+="\n";
+            }
+            println!("{}", out_str);
+        }
     }
-    stdout.flush().unwrap();
 }
 
 fn change_cell(grid: &mut [Vec<String>], x: usize, y: usize, new_value: String) {
@@ -124,7 +141,8 @@ ROTATE_SPEED = 3.0
 FOCAL_LENGTH = 64.0
     
 # Experimental options
-# Turn this option to false if you're having a black screen
+# Change these if you're having problems
+LEGACY_MODE = true
 CLEAR_SCREEN = false
 FPS = 60
 COLOR = true
@@ -150,6 +168,7 @@ COLOR = true
     let rotate_speed: f32 = config.get_float("ROTATE_SPEED").unwrap() as f32;
     let mut focal_length: f32 = config.get_float("FOCAL_LENGTH").unwrap() as f32;
 
+    let legacy_mode: bool = config.get_bool("LEGACY_MODE").unwrap();
     let clear_screen: bool = config.get_bool("CLEAR_SCREEN").unwrap();
     let fps: u64 = config.get_int("FPS").unwrap() as u64;
     let color: bool = config.get_bool("COLOR").unwrap();
@@ -251,8 +270,15 @@ COLOR = true
             //println!("Drawing point at {}, {}", x, y);
         }
 
-
-        draw_grid(&grid, &color, &pitch, &yaw, &roll, &focal_length);
+        draw_grid(
+            &grid,
+            &color,
+            &legacy_mode,
+            &pitch,
+            &yaw,
+            &roll,
+            &focal_length,
+        );
 
         let keys: Vec<Keycode> = device_state.get_keys();
 
@@ -296,8 +322,7 @@ COLOR = true
                     _ => (),
                 }
             }
-        }
-        else {
+        } else {
             // Check if animation is toggled
             if !keys.contains(&Keycode::Space) {
                 animation = false;
@@ -311,11 +336,16 @@ COLOR = true
         thread::sleep(time::Duration::from_millis(1000 / fps));
 
         // Clear the screen
-        if clear_screen {
-            stdout
-                .execute(terminal::Clear(terminal::ClearType::All))
-                .unwrap();
-            //    print!("\x1B[2J\x1B[1;1H");
+        // Check for legacy mode and clear the screen accordingly
+        match (legacy_mode, clear_screen) {
+            (true, true) => print!("\x1B[2J\x1B[1;1H"),
+            (true, false) => (),
+            (false, true) => {
+                stdout
+                    .execute(terminal::Clear(terminal::ClearType::All))
+                    .unwrap();
+            }
+            (false, false) => (),
         }
     }
 }
