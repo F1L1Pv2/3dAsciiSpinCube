@@ -22,6 +22,17 @@ fn draw_grid(
 ) {
     match legacy_mode {
         true => {
+            let mut out_str = String::new();
+            for row in grid {
+                for cell in row {
+                    let outcell = cell.clone() + " ";
+                    out_str += outcell.as_str();
+                }
+                out_str += "\n";
+            }
+            println!("{}", out_str)
+        }
+        false => {
             let mut stdout = stdout();
             stdout
                 .queue(cursor::MoveTo(0, 0_u16))
