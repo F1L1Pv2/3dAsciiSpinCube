@@ -120,9 +120,6 @@ fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec
 }
 
 fn main() {
-    // Start listening for key presses
-    let device_state = DeviceState::new();
-
     // Check if the yaml settings file exists
     const CONFIGPATH: &str = "Settings.toml";
     if !std::path::Path::new(CONFIGPATH).exists() {
@@ -138,6 +135,7 @@ FOCAL_LENGTH = 64.0
     
 # Experimental options
 # Change these if you're having problems
+# Legacy mode disables input, and uses the slow method of drawing the grid (works on all terminals)
 LEGACY_MODE = false
 CLEAR_SCREEN = true
 FPS = 60
@@ -168,8 +166,6 @@ COLOR = true
     let clear_screen: bool = config.get_bool("CLEAR_SCREEN").unwrap();
     let fps: u64 = config.get_int("FPS").unwrap() as u64;
     let color: bool = config.get_bool("COLOR").unwrap();
-
-    let mut animation = false;
 
     // Calculate rotation speed as fps non dependent
     let rotate_speed = rotate_speed / fps as f32;
@@ -208,6 +204,9 @@ COLOR = true
     let mut pitch: f32 = 0.0;
     let mut yaw: f32 = 0.0;
     let mut roll: f32 = 0.0;
+
+    // Start listening for key presses
+    let device_state = DeviceState::new();
 
     'main: loop {
         // Clear grid
@@ -278,60 +277,59 @@ COLOR = true
 
         let keys: Vec<Keycode> = device_state.get_keys();
 
-        // Match the keyboard input to the correct action
-        if !animation {
-            for key in keys {
-                match key {
-                    Keycode::W | Keycode::Up => pitch += rotate_speed,
-                    Keycode::A | Keycode::Left => yaw += rotate_speed,
-                    Keycode::S | Keycode::Down => pitch -= rotate_speed,
-                    Keycode::D | Keycode::Right => yaw -= rotate_speed,
-                    Keycode::Q => roll += rotate_speed,
-                    Keycode::E => roll -= rotate_speed,
-                    // Check if focal length is not too small
-                    Keycode::Z => {
-                        if focal_length > 10.0 {
-                            focal_length -= 1.0
+        // Check for legacy mode
+        match legacy_mode {
+            false => {
+                // If legacy mode is enabled, fallback to automatic rotation
+                for key in keys {
+                    match key {
+                        // Match the keyboard input to the correct action
+                        Keycode::W | Keycode::Up => pitch += rotate_speed,
+                        Keycode::A | Keycode::Left => yaw += rotate_speed,
+                        Keycode::S | Keycode::Down => pitch -= rotate_speed,
+                        Keycode::D | Keycode::Right => yaw -= rotate_speed,
+                        Keycode::Q => roll += rotate_speed,
+                        Keycode::E => roll -= rotate_speed,
+                        // Check if focal length is not too small
+                        Keycode::Z => {
+                            if focal_length > 10.0 {
+                                focal_length -= 1.0
+                            }
                         }
-                    }
-                    // Check if focal length is not too big
-                    Keycode::X => {
-                        if focal_length < 100.0 {
-                            focal_length += 1.0
+                        // Check if focal length is not too big
+                        Keycode::X => {
+                            if focal_length < 100.0 {
+                                focal_length += 1.0
+                            }
                         }
-                    }
-                    Keycode::R => {
-                        pitch = 0.0;
-                        yaw = 0.0;
-                        roll = 0.0;
-                        focal_length = config.get_float("FOCAL_LENGTH").unwrap() as f32;
-                    }
-                    Keycode::Space => {
-                        // Toggle animation
-                        if animation {
-                            animation = false;
-                        } else {
-                            animation = true;
+                        Keycode::R => {
+                            pitch = 0.0;
+                            yaw = 0.0;
+                            roll = 0.0;
+                            focal_length = config.get_float("FOCAL_LENGTH").unwrap() as f32;
                         }
+                        Keycode::Space => {
+                            // Toggle animation
+                            pitch += rotate_speed;
+                            yaw += rotate_speed;
+                            roll += rotate_speed;
+                        }
+                        Keycode::Escape => break 'main,
+                        _ => (),
                     }
-                    Keycode::Escape => break 'main,
-                    _ => (),
                 }
             }
-        } else {
-            // Check if animation is toggled
-            if !keys.contains(&Keycode::Space) {
-                animation = false;
+            true => {
+                // If legacy mode is enabled, fallback to automatic rotation
+                pitch += rotate_speed;
+                yaw += rotate_speed;
+                roll += rotate_speed;
             }
-            pitch += rotate_speed;
-            yaw += rotate_speed;
-            roll += rotate_speed;
         }
 
         // Update every x fps
         thread::sleep(time::Duration::from_millis(1000 / fps));
 
-        // Clear the screen
         // Check for legacy mode and clear the screen accordingly
         match (legacy_mode, clear_screen) {
             (true, true) => print!("\x1B[2J\x1B[1;1H"),
