@@ -141,8 +141,9 @@ FOCAL_LENGTH = 64.0
     
 # Experimental options
 # Change these if you're having problems
-LEGACY_MODE = true
-CLEAR_SCREEN = false
+LEGACY_MODE = false
+CLEAR_SCREEN = true
+# ^ Ignored if LEGACY_MODE is true
 FPS = 60
 COLOR = true
 "#;
