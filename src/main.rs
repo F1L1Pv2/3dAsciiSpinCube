@@ -22,6 +22,7 @@ fn draw_grid(
 ) {
     match legacy_mode {
         true => {
+            // Slow mode
             let mut out_str = String::new();
             for row in grid {
                 for cell in row {
@@ -33,6 +34,7 @@ fn draw_grid(
             println!("{}", out_str)
         }
         false => {
+            // Fast mode
             let mut stdout = stdout();
             stdout
                 .queue(cursor::MoveTo(0, 0_u16))
@@ -118,11 +120,6 @@ fn draw_line((x1, y1): (usize, usize), (x2, y2): (usize, usize), grid: &mut [Vec
 }
 
 fn main() {
-    let mut stdout = stdout();
-    stdout
-        .execute(terminal::Clear(terminal::ClearType::All))
-        .unwrap();
-
     // Start listening for key presses
     let device_state = DeviceState::new();
 
@@ -143,7 +140,6 @@ FOCAL_LENGTH = 64.0
 # Change these if you're having problems
 LEGACY_MODE = false
 CLEAR_SCREEN = true
-# ^ Ignored if LEGACY_MODE is true
 FPS = 60
 COLOR = true
 "#;
@@ -341,6 +337,7 @@ COLOR = true
             (true, true) => print!("\x1B[2J\x1B[1;1H"),
             (true, false) => (),
             (false, true) => {
+                let mut stdout = stdout();
                 stdout
                     .execute(terminal::Clear(terminal::ClearType::All))
                     .unwrap();
