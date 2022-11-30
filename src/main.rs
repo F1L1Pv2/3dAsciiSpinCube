@@ -80,18 +80,6 @@ fn draw_grid(
                 stdout.flush().unwrap();
             }
         }
-        false => {
-            let mut out_str = String::new();
-            for row in grid {
-                for cell in row {
-                    // Print with space padding (for alignment)
-                    let outcell = cell.clone() + " ";
-                    out_str+=outcell.as_str();
-                }
-                out_str+="\n";
-            }
-            println!("{}", out_str);
-        }
     }
 }
 
